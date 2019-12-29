@@ -54,11 +54,33 @@ def naked_twins(values):
     Pseudocode for this algorithm on github:
     https://github.com/udacity/artificial-intelligence/blob/master/Projects/1_Sudoku/pseudocode.md
     """
-    # TODO: Implement this function!
-    raise NotImplementedError
+    # DONE: Implement this function!
+    out = values.copy()
 
+    for boxA in values:
+        peersA = get_peers(boxA, values)
+        for boxB in peersA:
+            # Checks if the values in each box match and whether the number of values equals two
+            if ''.join(sorted(values[boxA])) == ''.join(sorted(values[boxB])) and len(values[boxA]) == len(values[boxB]) == 2:
+                # Gets values of each peer section and compares to find the matching section
+                peersA_split = get_peers(boxA, values, split = True)
+                peersB_split = get_peers(boxB, values, split = True)
+                intersection = []
 
-def get_peers(key, values):
+                # Finds the specific section it intersects and only uses those values
+                for section in range(len(peersA_split)):
+                    intersection = list(set(peersA_split[section]).intersection(peersB_split[section]))
+                    if len(intersection) == 7:
+                        break
+                
+                # Removes digits that are found in the match from the intersection
+                for i_box in intersection:
+                    for digit in ''.join(sorted(values[boxA])):
+                        values[i_box] = values[i_box].replace(digit,'')
+                        out[i_box] = values[i_box]
+    return out
+
+def get_peers(key, values, split = False):
 
     keys = values.keys()
     row = key[0]
@@ -85,9 +107,11 @@ def get_peers(key, values):
         right_diag_peers = [x for x in right_diagonal_units if x != key]
         # print("DIAG RIGHT PEERS", right_diag_peers)
 
-    diag_peers = [peer for sub_peers in [left_diag_peers, right_diag_peers] for peer in sub_peers]
-
-    return row_peers, col_peers, square_peers, diag_peers
+    if split:
+        return [row_peers, col_peers, square_peers, left_diag_peers, right_diag_peers]
+    else:
+        diag_peers = [peer for sub_peers in [left_diag_peers, right_diag_peers] for peer in sub_peers]
+        return list(set([peer for sub_peers in [row_peers, col_peers, square_peers, diag_peers] for peer in sub_peers]))
 
 
 def eliminate(values):
@@ -104,30 +128,10 @@ def eliminate(values):
     solved_values = [box for box in values.keys() if len(values[box]) == 1]
     for box in solved_values:
         digit = values[box]
-        row_peers, col_peers, box_peers, diag_peers = get_peers(box, values)
-        peers = list(set([peer for sub_peers in [row_peers, col_peers, box_peers, diag_peers] for peer in sub_peers]))
+        peers = get_peers(box, values)
         for peer in peers:
             values[peer] = values[peer].replace(digit,'')
     return values
-
-
-def sub_only_choice(peers, values):
-
-    peer_values = [values[peer] for peer in peers]
-    joined_values = ''.join(peer_values)
-    unique_values = []
-    
-    for joined_value in set(joined_values):
-        if joined_values.count(joined_value) == 1:
-            unique_values.append(joined_value)
-    
-    for unique_value in unique_values:
-        for peer in peers:
-            if unique_value in values[peer]:
-                values[peer] = unique_value
-                break
-    return values
-    
 
 def only_choice(values):
     """Apply the only choice strategy to a Sudoku puzzle
@@ -154,8 +158,7 @@ def only_choice(values):
 
     for key in keys:
         if len(values[key]) > 1:
-            row_peers, col_peers, box_peers, diag_peers = get_peers(key, values)
-            peers = list(set([peer for sub_peers in [row_peers, col_peers, box_peers, diag_peers] for peer in sub_peers]))
+            peers = get_peers(key, values)
             peer_values = [values[peer] for peer in peers]
             joined_values = list(set(''.join(peer_values)))
 
@@ -187,10 +190,11 @@ def reduce_puzzle(values):
     while not stalled:
         # Check how many boxes have a determined value
         solved_values_before = len([box for box in values.keys() if len(values[box]) == 1])
-        
-
+    
         # Your code here: Use the Eliminate Strategy
         values = eliminate(values)
+
+        values = naked_twins(values)
 
         # Your code here: Use the Only Choice Strategy
         values = only_choice(values)
@@ -259,6 +263,7 @@ def solve(grid):
     """
     values = grid2values(grid)
     values = search(values)
+    # values = naked_twins(values)
     return values
 
 
@@ -267,7 +272,6 @@ if __name__ == "__main__":
     grid_hard = '4.....8.5.3..........7......2.....6.....8.4......1.......6.3.7.5..2.....1.4......'
     display(grid2values(diag_sudoku_grid))
     result = solve(diag_sudoku_grid)
-    display(result)
 
 
     try:
