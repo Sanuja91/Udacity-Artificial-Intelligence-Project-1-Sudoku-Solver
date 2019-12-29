@@ -1,6 +1,5 @@
 
 from utils import *
-import pydash as py_
 
 row_units = [cross(r, cols) for r in rows]
 column_units = [cross(rows, c) for c in cols]
@@ -57,28 +56,43 @@ def naked_twins(values):
     # DONE: Implement this function!
     out = values.copy()
 
-    for boxA in values:
-        peersA = get_peers(boxA, values)
-        for boxB in peersA:
-            # Checks if the values in each box match and whether the number of values equals two
-            if ''.join(sorted(values[boxA])) == ''.join(sorted(values[boxB])) and len(values[boxA]) == len(values[boxB]) == 2:
-                # Gets values of each peer section and compares to find the matching section
-                peersA_split = get_peers(boxA, values, split = True)
-                peersB_split = get_peers(boxB, values, split = True)
-                intersection = []
+    duos = [x for x in out.keys() if len(out[x]) == 2]
+    twins_list = [(x,y) for x in duos for y in get_peers(x, out) if out[x] == out[y]]
 
-                # Finds the specific section it intersects and only uses those values
-                for section in range(len(peersA_split)):
-                    intersection = list(set(peersA_split[section]).intersection(peersB_split[section]))
-                    if len(intersection) == 7:
-                        break
-                
-                # Removes digits that are found in the match from the intersection
-                for i_box in intersection:
-                    for digit in ''.join(sorted(values[boxA])):
-                        values[i_box] = values[i_box].replace(digit,'')
-                        out[i_box] = values[i_box]
+    for twins in twins_list:
+        digits = out[twins[0]]
+        peers0 = get_peers(twins[0], out)
+        peers1 = get_peers(twins[1], out)
+        for peer in peers0:
+            if peer not in twins and peer in peers1 and len(out[peer]) != 1:
+                out[peer] = out[peer].replace(digits[0],'').replace(digits[1],'')
     return out
+
+
+
+
+    # for boxA in values:
+    #     peersA = get_peers(boxA, values)
+    #     for boxB in peersA:
+    #         # Checks if the values in each box match and whether the number of values equals two
+    #         if ''.join(sorted(values[boxA])) == ''.join(sorted(values[boxB])) and len(values[boxA]) == len(values[boxB]) == 2:
+    #             # Gets values of each peer section and compares to find the matching section
+    #             peersA_split = get_peers(boxA, values, split = True)
+    #             peersB_split = get_peers(boxB, values, split = True)
+    #             intersection = []
+
+    #             # Finds the specific section it intersects and only uses those values
+    #             for section in range(len(peersA_split)):
+    #                 intersection = list(set(peersA_split[section]).intersection(peersB_split[section]))
+    #                 if len(intersection) == 7:
+    #                     break
+                
+    #             # Removes digits that are found in the match from the intersection
+    #             for i_box in intersection:
+    #                 for digit in ''.join(sorted(values[boxA])):
+    #                     values[i_box] = values[i_box].replace(digit,'')
+    #                     out[i_box] = values[i_box]
+    # return out
 
 def get_peers(key, values, split = False):
 
@@ -195,7 +209,6 @@ def reduce_puzzle(values):
         values = eliminate(values)
 
         values = naked_twins(values)
-
         # Your code here: Use the Only Choice Strategy
         values = only_choice(values)
 
@@ -263,7 +276,6 @@ def solve(grid):
     """
     values = grid2values(grid)
     values = search(values)
-    # values = naked_twins(values)
     return values
 
 
